@@ -29,7 +29,9 @@ module.exports = {
         new HtmlWebpackPlugin({
             template: Path.resolve(__dirname, '../src/index.html')
         }),
-        new MonacoWebpackPlugin()
+        new MonacoWebpackPlugin({
+            languages: ['javascript', 'typescript', 'json']
+        })
     ],
     resolve: {
         alias: {

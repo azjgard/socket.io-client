@@ -1,19 +1,19 @@
 import * as monaco from 'monaco-editor';
 
-export function javascriptEditor(
+export function ackEditor(
     containerId,
+    value = ['() => {', '\t', '}'].join('\n'),
     size = { width: 500, height: 500 }
 ) {
-    return createEditor(
-        containerId,
-        size,
-        'javascript',
-        ['() => {', '\t', '}'].join('\n')
-    );
+    return createEditor(containerId, size, 'javascript', value);
 }
 
-export function jsonEditor(containerId, size = { width: 500, height: 500 }) {
-    return createEditor(containerId, size, 'json', ['{', '\t', '}'].join('\n'));
+export function payloadEditor(
+    containerId,
+    value = ['{', '\t', '}'].join('\n'),
+    size = { width: 500, height: 500 }
+) {
+    return createEditor(containerId, size, '', value);
 }
 
 export default function createEditor(
@@ -25,28 +25,11 @@ export default function createEditor(
     const container = document.getElementById(containerId);
     const editor = monaco.editor.create(container, {
         value,
-        language
+        language,
+        minimap: { enabled: false }
     });
 
     editor.layout(size);
 
     return editor;
 }
-
-self.MonacoEnvironment = {
-    getWorkerUrl: function(moduleId, label) {
-        if (label === 'json') {
-            return './json.worker.bundle.js';
-        }
-        if (label === 'css') {
-            return './css.worker.bundle.js';
-        }
-        if (label === 'html') {
-            return './html.worker.bundle.js';
-        }
-        if (label === 'typescript' || label === 'javascript') {
-            return './ts.worker.bundle.js';
-        }
-        return './editor.worker.bundle.js';
-    }
-};
