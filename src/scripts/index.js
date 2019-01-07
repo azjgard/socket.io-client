@@ -1,22 +1,11 @@
 import '../styles/index.scss';
 import { connect } from './socket.io';
+import { javascriptEditor, jsonEditor } from './editor';
 
 const app = document.getElementById('app');
 
 const DEFAULT_URL = 'http://localhost:4000';
-const EMITTERS = [
-    {
-        message: 'authenticate',
-        username: 'Jordin',
-        // replace ack with code editor
-        ack({ user, rooms }) {
-            console.log('acknowledged');
-
-            console.log(user);
-            console.log(rooms);
-        }
-    }
-];
+const EMITTERS = [{}];
 
 let socket;
 
@@ -32,18 +21,33 @@ function connectToSocket(url) {
     }
 }
 
-function emit(emitterIndex = 0) {
-    if (socket && EMITTERS[emitterIndex]) {
-        const emitter = EMITTERS[emitterIndex];
-
-        if (emitter.message) {
-            socket.emit(
-                emitter.message,
-                emitter.payload || {},
-                emitter.ack || (() => {})
-            );
-        }
+function emit(message, payloadEditor, ackEditor) {
+    if (!socket) {
+        connectToSocket(document.getElementById('connect').value);
     }
+
+    let payload;
+    let ack;
+
+    try {
+        payload = JSON.parse(payloadEditor.getValue());
+    } catch (e) {
+        alert('Invalid payload JSON');
+        return;
+    }
+
+    try {
+        ack = eval(ackEditor.getValue());
+
+        if (!(ack && {}.toString.call(ack) === '[object Function]')) {
+            throw '';
+        }
+    } catch (e) {
+        alert('Ack is not a function');
+        return;
+    }
+
+    socket.emit(message || '', payload, ack);
 }
 
 function render() {
@@ -58,8 +62,21 @@ function render() {
             ${EMITTERS.map(
                 (emitter, emitterIndex) =>
                     `
-                Message: <input type="text" id="message-${emitterIndex}" /> 
-                <button id="emit-${emitterIndex}">Emit</button>
+                Message: <input type="text" id="${getEmitterMessageName(
+                    emitterIndex
+                )}" /> 
+                <button id="${getEmitterButtonName(emitterIndex)}">Emit</button>
+
+                <div class="editor-container">
+                    <div class="emitter-editor">
+                        Payload: 
+                        <div id="${getEmitterPayloadName(emitterIndex)}"></div>
+                    </div>
+                    <div class="emitter-editor">
+                        Ack: 
+                        <div id="${getEmitterAckName(emitterIndex)}"></div>
+                    </div>
+                </div>
                 `
             )}
         </div>`;
@@ -71,10 +88,35 @@ function render() {
         .addEventListener('click', () => connectToSocket(urlInput.value));
 
     EMITTERS.forEach((emitter, emitterIndex) => {
+        let payloadEditor = jsonEditor(getEmitterPayloadName(emitterIndex));
+        let ackEditor = javascriptEditor(getEmitterAckName(emitterIndex));
+
+        let emitterMessage = document.getElementById(
+            getEmitterMessageName(emitterIndex)
+        );
+
         document
-            .getElementById(`emit-${emitterIndex}`)
-            .addEventListener('click', () => emit(emitterIndex));
+            .getElementById(getEmitterButtonName(emitterIndex))
+            .addEventListener('click', () => {
+                emit(emitterMessage.value, payloadEditor, ackEditor);
+            });
     });
 }
 
 render();
+
+function getEmitterButtonName(emitterIndex) {
+    return `emitter-${emitterIndex}`;
+}
+
+function getEmitterMessageName(emitterIndex) {
+    return `emitter-message-${emitterIndex}`;
+}
+
+function getEmitterPayloadName(emitterIndex) {
+    return `emitter-payload-${emitterIndex}`;
+}
+
+function getEmitterAckName(emitterIndex) {
+    return `emitter-ack-${emitterIndex}`;
+}
